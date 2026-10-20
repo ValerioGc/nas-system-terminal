@@ -1,0 +1,19 @@
+# Development
+
+Use Node.js `^24.12.0`, npm and stable Rust. The private `@valeriogc/nas-base-app` dependency requires read access to the GitHub Packages registry configured in `.npmrc`.
+
+From the repository root, run `npm ci` and `npm run build` once: the backend requires `dist/axum/index.html` even when Vite serves the development interface. Then run `npm run backend:dev` and `npm run dev` in separate terminals. Vite listens on `127.0.0.1:1444` and proxies HTTP and terminal WebSocket traffic to the app's Unix socket, which defaults to `/tmp/nas-system-terminal-dev.sock` (under the system temporary directory). Set `NAS_APP_SOCKET` consistently for both processes to override it.
+
+Set `NAS_LAUNCHER_SOCKET` in the backend environment to override the launcher channel at `/run/nas-os/launcher/apps.sock`. Journal access requires `NAS_TERMINAL_MODE=real` in the launcher environment. Interactive shells require the launcher-installed `nas-os-terminal.socket` and `nas-os-terminal@.service`, with the dedicated wizard account configured. `NAS_TERMINAL_SOCKET` overrides the worker socket at `/run/nas-os-terminal.sock`; it must speak the worker protocol below. The launcher identifies callers by application cgroup and rejects ordinary development processes. Full integration requires the backend to run in `nas-app@nas-system-terminal.service`; browser tests instead mock the API and transports.
+
+The frontend opens relative `api/terminal/session` over WebSocket. Binary messages contain raw terminal input/output; client text messages contain `{cols, rows}` for resizing. The backend connects to the worker socket. Systemd starts the packaged app binary with `--shell` as the dedicated account, outside the app HTTP service sandbox. This mode creates a PTY and starts Bash. Authenticated `su` and `sudo` follow Linux account permissions; the application HTTP service retains its sandbox.
+
+The worker socket carries input frames prefixed by a big-endian u32 length, including the kind byte: kind 0 carries raw bytes; kind 1 carries two big-endian u16 values, columns then rows. Output consists of raw PTY bytes. WebSocket messages are limited to 64 KiB; the frontend splits larger pastes. Resizes require dimensions between 1 and 1,000. The shell exits with its window, and the systemd control group removes remaining child processes. Password input is handled by the real terminal; the frontend does not record commands or credentials.
+
+Relative `api/terminal/log` and `api/settings/terminal` are forwarded to the launcher Unix channel. Journal SSE responses stream without buffering. Switching away from the log closes its stream without closing the shell. Reopening the log starts a new stream with the launcher's initial journal tail.
+
+Run `npm test`, `npm run test:e2e`, `npm run build`, and `cargo test --locked --manifest-path backend/Cargo.toml`. Install the browser once with `npx playwright install chromium` before running browser tests. Playwright starts its own Vite server on port 1438. Rust tests exercise a real PTY, controlling terminal, resize, hidden input, interrupts, WebSocket transport and cleanup. Browser tests cover the actual xterm renderer with mocked transport and settings; they do not require the backend or launcher.
+
+`npm run format` and `npm run format:check` combine Prettier with the shared SFC formatter. Prettier reads `.gitignore`; `.prettierignore` additionally skips the generated npm lockfile and Vue files, which `nas-base-app format-sfc` formats separately. The repository tracks `package-lock.json` for CI; pnpm files remain local.
+
+`npm run test:coverage` checks frontend coverage per file. `npm run test:sonar` also collects Rust coverage and Clippy output before running the scanner configured by `sonar.properties`; it requires `cargo-llvm-cov`, Podman and `SONAR_TOKEN`. Use `npm run podman:sonar:up` to start the local SonarQube service.

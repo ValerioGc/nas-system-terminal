@@ -1,0 +1,34 @@
+node_modules/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Builds and release packages
+dist/
+backend/target/
+release-assets/
+.vite/
+*.tsbuildinfo
+*.timestamp-*-*.mjs
+
+# Tests, coverage and reports
+coverage/
+test-results/
+clippy-report.json
+.scannerwork/
+.eslintcache
+
+# Logs
+logs
+*.log
+
+# Local settings and editors
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sw?
+
+# Assistants
+CLAUDE.md
+.claude/

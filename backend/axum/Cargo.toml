@@ -1,0 +1,20 @@
+[package]
+name = "nas-system-terminal-axum"
+version = "0.9.0"
+edition = "2021"
+autotests = false
+
+[dependencies]
+axum = { version = "0.8.9", features = ["ws"] }
+serde_json = "1.0.154"
+tokio = { version = "1.53.3", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal"] }
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+nix = { version = "0.31.3", default-features = false, features = ["term", "process", "fs", "ioctl"] }
+
+[dev-dependencies]
+tokio = { version = "1.53.3", features = ["sync", "time"] }
+
+[[test]]
+name = "worker"
+path = "tests/worker.rs"

@@ -1,0 +1,74 @@
+@use '@valeriogc/nas-base-app/styles/_nas-theme.scss';
+@use '@valeriogc/nas-base-app/styles/partials/_reset.scss';
+@use '@valeriogc/nas-base-app/styles/_nas-modal.scss';
+@use '@valeriogc/nas-base-app/styles/_nas-scrollbar.scss';
+@use './global' as *;
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --theme-foreground: var(--nas-foreground);
+  --surface: var(--nas-surface);
+  --surface-sunken: var(--nas-sunken);
+  --surface-border: var(--nas-border);
+  --surface-hover: var(--nas-hover);
+  --surface-muted: var(--nas-muted);
+  --status-error: var(--nas-error);
+  --app-background: var(--nas-background);
+}
+html,
+body,
+#app {
+  @extend %full_wh;
+}
+body {
+  background: transparent;
+  font-family: $font_ui;
+}
+.app_surface {
+  color: var(--theme-foreground);
+  font: 1rem / 1.5 $font_ui;
+  min-width: 0;
+  button {
+    @extend %button;
+  }
+  input:not([type='range']):not([type='color']) {
+    @extend %control;
+    max-width: 100%;
+    min-width: 0;
+  }
+  input[type='range'] {
+    accent-color: var(--accent);
+    width: 100%;
+  }
+  label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $space_2;
+  }
+  .primary {
+    background: $color_primary;
+    color: $color_on_primary;
+    &:hover:not(:disabled) {
+      background: $color_primary_hover;
+    }
+  }
+  .app_error {
+    color: var(--status-error);
+  }
+  &.app_stack,
+  .app_stack {
+    @extend %stack;
+  }
+  .app_toolbar {
+    @extend %fx_row_center;
+    flex-wrap: wrap;
+    gap: $space_2;
+  }
+}
