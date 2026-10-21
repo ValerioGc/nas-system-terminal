@@ -1,4 +1,10 @@
 # Changelog
 
+## [0.9.1]
+
+### Changed
+
+- Maintenance release.
+
 ## [0.9.0]
 - Initial release of the NAS system terminal as an external application.
