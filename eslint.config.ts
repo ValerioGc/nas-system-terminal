@@ -5,16 +5,29 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'backend', '.claude', 'test-results', 'coverage', 'release-assets'],
+    ignores: [
+      'dist',
+      'backend',
+      '.claude',
+      'src/tests/e2e/.features-gen',
+      'src/tests/e2e/allure-results',
+      'src/tests/e2e/allure-report',
+      'test-results',
+      'coverage',
+      'release-assets',
+      'build-reports',
+      '.playwright-results',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],
   {
-    files: ['src/tests/scripts/**/*.ts', '*.config.ts'],
+    files: ['src/tests/**/*.mjs', 'src/tests/scripts/**/*.ts', '*.config.ts'],
     languageOptions: {
       globals: { ...globals.node, URL: 'readonly' },
     },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     files: ['**/*.{ts,vue}'],

@@ -1,4 +1,3 @@
-mod launcher_only;
 mod terminal;
 
 use axum::{
@@ -9,12 +8,9 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use nas_app_core::prepare_socket;
 use serde_json::json;
-use std::{
-    env,
-    os::unix::fs::FileTypeExt,
-    path::{Component, Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 use tokio::net::{UnixListener, UnixStream};
 
 #[derive(Clone)]
@@ -108,73 +104,7 @@ fn socket_path(
 }
 
 async fn static_file(State(state): State<AppState>, uri: Uri) -> Response {
-    let path = uri.path();
-    if path.starts_with("/api/") || path == "/api" {
-        return StatusCode::NOT_FOUND.into_response();
-    }
-
-    let requested = if path == "/" {
-        "index.html"
-    } else {
-        &path[1..]
-    };
-
-    let relative = Path::new(requested);
-    if !relative
-        .components()
-        .all(|component| matches!(component, Component::Normal(_)))
-    {
-        return StatusCode::BAD_REQUEST.into_response();
-    }
-
-    let file = state.ui_dir.join(relative);
-    let mime = match file
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or_default()
-    {
-        "html" => "text/html; charset=utf-8",
-        "js" => "text/javascript; charset=utf-8",
-        "css" => "text/css; charset=utf-8",
-        "svg" => "image/svg+xml",
-        "png" => "image/png",
-        "webp" => "image/webp",
-        "ico" => "image/x-icon",
-        "woff2" => "font/woff2",
-        _ => "application/octet-stream",
-    };
-
-    let cache = if requested.starts_with("assets/") {
-        "public, max-age=31536000, immutable"
-    } else {
-        "no-cache"
-    };
-
-    match tokio::fs::read(file).await {
-        Ok(bytes) => (
-            [(header::CONTENT_TYPE, mime), (header::CACHE_CONTROL, cache)],
-            bytes,
-        )
-            .into_response(),
-        Err(_) => StatusCode::NOT_FOUND.into_response(),
-    }
-}
-
-async fn prepare_socket(path: &Path) -> Result<(), String> {
-    if let Ok(metadata) = tokio::fs::symlink_metadata(path).await {
-        if !metadata.file_type().is_socket() {
-            return Err(format!("Socket path is occupied: {}", path.display()));
-        }
-        match UnixStream::connect(path).await {
-            Ok(_) => return Err(format!("Socket is already listening: {}", path.display())),
-            Err(error) if error.kind() == std::io::ErrorKind::ConnectionRefused => {}
-            Err(error) => return Err(format!("Unable to check socket: {error}")),
-        }
-        tokio::fs::remove_file(path)
-            .await
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
+    nas_app_core::serve_static(&state.ui_dir, uri.path()).await
 }
 
 async fn run(
@@ -212,12 +142,12 @@ async fn run(
         .with_state(state);
 
     println!("nas-system-terminal listening on {}", path.display());
-    let result = axum::serve(launcher_only::LauncherOnly::new(listener), app)
+    let result = axum::serve(nas_app_core::LauncherOnly::new(listener), app)
         .with_graceful_shutdown(shutdown_signal)
         .await;
 
     if let Err(error) = tokio::fs::remove_file(&path).await {
-        eprintln!("Unable to remove socket: {error}");
+        eprintln!("unable to remove the socket ({error})");
     }
 
     result?;
